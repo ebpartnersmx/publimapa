@@ -1,0 +1,585 @@
+100110<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cargando Perfil...</title>
+
+    <!-- ==========================================
+         MASTER APP-LESS CONFIGURATION BLOCK
+         ========================================== -->
+    <script>
+        const APP_CONFIG = {
+            // --- 1. DATOS DEL PERFIL (Valores por defecto, se sobrescriben dinámicamente) ---
+            profile: {
+                uniqueId: "", // AQUÍ SE GUARDARÁ EL CORREO PARA EL COBRO PPL
+                directoryLogo: "images/icon_publimapa.png", // Cambia esto por el logo de tu directorio
+                category: "",
+                zone: "",
+                name: "Cargando...",
+                title: "",
+                image: "",
+                description: "",
+                locationMapUrl: "", 
+                whatsappNumber: "",
+                sliderImages: []
+            },
+
+            // --- 2. TEXTOS DE LA INTERFAZ (UI) ---
+            ui: {
+                locationButtonText: "Cómo llegar",
+                formTitle: "Contácto por WhatsApp",
+                formSubtitle: "Llena el formulario para iniciar chat",
+                nameLabel: "Nombre completo",
+                namePlaceholder: "Tu nombre completo (Requerido)",
+                messageLabel: "Mensaje",
+                messagePlaceholder: "¿En qué puedo ayudarte hoy?",
+                sendButton: "Enviar Mensaje",
+                connectingBtn: "Conectando...",
+                shareText: "Compartir Perfil",
+                copyrightPrefix: "Todos los derechos reservados PUBLIMAPA®."
+            },
+
+            // --- 3. ALERTAS Y MENSAJES DE ESTADO ---
+            alerts: {
+                copySuccess: "Enlace copiado al portapapeles.",
+                error: "Ocurrió un error de conexión."
+            },
+
+            // --- 4. ESTÉTICA, COLORES Y TIPOGRAFÍA ---
+            theme: {
+                fontUrl: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700&display=swap",
+                fontHeading: '"Merriweather"', 
+                fontBody: '"Open Sans"',
+
+                colors: {  
+                    bgColor: "#F4F5F4", textColor: "#1F2937", accentColor: "#5B7065", accentHover: "#475950", cardBg: "#FFFFFF", cardBorder: "#E5E7EB", textMuted: "#6B7280", btnBg: "#FFFFFF", btnBorder: "#D1D5DB"  
+                },
+                darkColors: {
+                    bgColor: "#121212", textColor: "#F3F4F6", accentColor: "#10B981", accentHover: "#059669", cardBg: "#1E1E1E", cardBorder: "#333333", textMuted: "#9CA3AF", btnBg: "#2A2A2A", btnBorder: "#404040"  
+                },
+                specialColors: {
+                    whatsappBg: "#25D366", whatsappHover: "#128C7E"
+                }
+            },
+
+            // --- 5. BASE DE DATOS Y CONEXIONES (INTEGRACIONES) ---
+            integrations: {
+                // IMPORTANTE: Pega aquí la misma URL de Apps Script que usaste en directorio.html
+                appsScriptEndpoint: "https://script.google.com/macros/s/AKfycbzLSNOkt25cVfp-xXCeYgPAU1ZjW5oxAYwHChZii5JT2OBCgz8pHOgN4CQmmd7Ux4M3/exec", 
+                
+                // Pega la URL del Pipeline B de SheetMonkey (Lead Capture)
+                sheetMonkeyEndpoint: "https://api.sheetmonkey.io/form/6wEBAkwEJED5xpn4FUFX3Y" 
+            },
+
+            // --- 6. DICCIONARIO DE CATEGORÍAS (NUEVO) ---
+            // Mapea el ID de la base de datos con el nombre completo a mostrar
+            categoryMap: {
+                "automotriz": "Automotriz",
+                "belleza": "Belleza y Bienestar",
+                "construccion": "Bienes Raices y Construcción",
+                "cafe": "Café y Postres",
+                "casa": "Casa y Decoración",
+                "computacion": "Computación y Electrónica",
+                "decompras": "De Compras y Regalos",
+                "deportes": "Deportes y Gimnasios",
+                "educacion": "Educación y Aprendizaje",
+                "hoteles": "Hoteles y Hospedajes",
+                "mascotas": "Mascotas",
+                "medicina": "Medicina y Salud",
+                "oficios": "Oficios y Mantenimiento",
+                "restaurantes": "Restaurantes y Comida",
+                "profesionales": "Servicios Profesionales",
+                "tecnologia": "Tecnología y Comunicación",
+                "tiempolibre": "Tiempo Libre",
+                "viajes": "Viajes y Turismo",
+                "vidanocturna": "Vida Nocturna y Bares",
+                "vidanocturan": "Vida Nocturna y Bares" // Agregado para prever el typo de tu index
+            }
+        };
+
+        // ==========================================
+        // AUTO-INYECCIÓN DE TEMA (SIN DESTELLOS)
+        // ==========================================
+        if (APP_CONFIG.theme.fontUrl) {
+            document.write(`<link rel="preconnect" href="https://fonts.googleapis.com">`);
+            document.write(`<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`);
+            document.write(`<link href="${APP_CONFIG.theme.fontUrl}" rel="stylesheet">`);
+        }
+
+        let cssString = ':root {\n';
+        Object.keys(APP_CONFIG.theme.colors).forEach(key => {
+            const cssVar = '--' + key.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+            cssString += `  ${cssVar}: ${APP_CONFIG.theme.colors[key]};\n`;
+        });
+        cssString += '}\n\n.dark {\n';
+        Object.keys(APP_CONFIG.theme.darkColors).forEach(key => {
+            const cssVar = '--' + key.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase();
+            cssString += `  ${cssVar}: ${APP_CONFIG.theme.darkColors[key]};\n`;
+        });
+        cssString += '}\n';
+
+        const styleTag = document.createElement('style');
+        styleTag.innerHTML = cssString;
+        document.head.appendChild(styleTag);
+        
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class', 
+            theme: {
+                extend: {
+                    colors: {
+                        page: 'var(--bg-color)', main: 'var(--text-color)', muted: 'var(--text-muted)', card: 'var(--card-bg)', 'card-border': 'var(--card-border)', 'btn-bg': 'var(--btn-bg)', 'btn-border': 'var(--btn-border)', accent: 'var(--accent-color)', 'accent-hover': 'var(--accent-hover)', 'wa-bg': APP_CONFIG.theme.specialColors.whatsappBg, 'wa-hover': APP_CONFIG.theme.specialColors.whatsappHover
+                    },
+                    fontFamily: {
+                        sans: [APP_CONFIG.theme.fontBody, 'sans-serif'], serif: [APP_CONFIG.theme.fontHeading, 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: var(--bg-color); color: var(--text-color); -webkit-font-smoothing: antialiased; margin: 0; padding: 0; overflow: hidden; transition: background-color 0.3s ease; }
+        .app-container { width: 100%; max-width: 440px; height: 100dvh; margin: 0 auto; position: relative; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+        .app-container::-webkit-scrollbar { display: none; }
+        .slider-dot { transition: all 0.3s ease; }
+        
+        /* Animación de carga */
+        .loader { border: 3px solid var(--card-border); border-top: 3px solid var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="font-sans transition-colors duration-300">
+
+    <main id="app-wrapper" class="app-container shadow-2xl relative bg-page text-main flex items-center justify-center">
+        <!-- Pantalla de Carga Inicial -->
+        <div class="flex flex-col items-center justify-center text-center px-4">
+            <div class="loader mb-4"></div>
+            <p class="text-muted font-bold animate-pulse">Obteniendo información del negocio...</p>
+        </div>
+    </main>
+
+    <script>
+        /**************************************************************
+         * DATA HYDRATION & API LOGIC (NUEVO)
+         **************************************************************/
+        
+        // Datos de prueba como contingencia (Igual que en el directorio)
+        const MOCK_DATA = [
+            {
+                Unique_ID: "techhub@gmail.com",
+                Slug: "techhub-especialistas",
+                ProfileName: "TechHub Especialistas",
+                Category: "tecnologia", // ID de backend para probar
+                Zone: "Norte",
+                ProfileTitle: "Reparación y Venta de Gadgets",
+                Description: "Especialistas en microelectrónica. Reparamos desde smartphones hasta tarjetas madre de laptops. También contamos con accesorios exclusivos e importación bajo pedido.",
+                Image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=600&q=80",
+                Image2: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80",
+                WhatsAppNumber: "5215557654321",
+                MapUrl: "https://goo.gl/maps/example"
+            }
+        ];
+
+        async function initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const businessId = urlParams.get('id'); // Extraemos el "?id=..."
+            const container = document.getElementById('app-wrapper');
+
+            if (!businessId) {
+                renderErrorUI("No se proporcionó ningún identificador de negocio en el enlace.");
+                return;
+            }
+
+            try {
+                let data = [];
+                
+                // 1. Obtener Datos
+                if (APP_CONFIG.integrations.appsScriptEndpoint && !APP_CONFIG.integrations.appsScriptEndpoint.includes("TU_URL_DE")) {
+                    const response = await fetch(APP_CONFIG.integrations.appsScriptEndpoint);
+                    if (!response.ok) throw new Error("Error en la red");
+                    data = await response.json();
+                } else {
+                    console.info("Usando Mock Data (Falta URL de Apps Script)");
+                    data = MOCK_DATA;
+                }
+
+                // 2. Buscar el Negocio (Prioridad 1: Slug. Prioridad 2: Unique_ID correo)
+                const business = data.find(b => b.Slug === businessId || b.Unique_ID === businessId);
+
+                if (!business) {
+                    renderErrorUI("El negocio que buscas no existe o fue dado de baja.");
+                    return;
+                }
+
+                // 3. Mapear Datos de Google Sheets -> APP_CONFIG (Hidratación)
+                APP_CONFIG.profile.uniqueId = business.Unique_ID; // ¡El correo electrónico para PPL!
+                APP_CONFIG.profile.name = business.ProfileName || "Sin Nombre";
+                APP_CONFIG.profile.title = business.ProfileTitle || "";
+                
+                // LOGICA AÑADIDA: Convertir categoría usando el diccionario
+                const rawCategory = (business.Category || "").trim();
+                const normalizedCategory = rawCategory.toLowerCase();
+                // Si existe en el mapa, usa el nombre largo, si no, deja el valor crudo original
+                APP_CONFIG.profile.category = APP_CONFIG.categoryMap[normalizedCategory] || rawCategory;
+                
+                APP_CONFIG.profile.zone = business.Zone || "";
+                APP_CONFIG.profile.description = business.Description || "";
+                APP_CONFIG.profile.image = business.Image || "";
+                APP_CONFIG.profile.whatsappNumber = business.WhatsAppNumber || "";
+                APP_CONFIG.profile.locationMapUrl = business.MapUrl || "";
+                APP_CONFIG.profile.currentBalance = business.CurrentBalance;
+
+                // Consolidar Imágenes para el Slider
+                APP_CONFIG.profile.sliderImages = [];
+                if (business.Image2) APP_CONFIG.profile.sliderImages.push(business.Image2);
+                if (business.Image3) APP_CONFIG.profile.sliderImages.push(business.Image3);
+                if (business.Image4) APP_CONFIG.profile.sliderImages.push(business.Image4);
+
+                // 4. Renderizar UI final
+                renderApp();
+
+            } catch (error) {
+                console.error("Error al cargar perfil:", error);
+                renderErrorUI("Tuvimos un problema técnico al cargar este perfil. Por favor intenta más tarde.");
+            }
+        }
+
+        function renderErrorUI(message) {
+            document.title = "Perfil No Encontrado";
+            const container = document.getElementById('app-wrapper');
+            container.classList.remove("justify-center"); // reset flex layout if needed
+            container.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                    <i class="fas fa-store-slash text-5xl text-muted mb-4 opacity-50"></i>
+                    <h2 class="text-2xl font-serif font-bold text-main mb-2">Oops...</h2>
+                    <p class="text-muted mb-6">${message}</p>
+                    <button onclick="window.history.back()" class="px-6 py-2 bg-btn-bg border border-btn-border text-main rounded-xl font-bold hover:bg-card-border shadow-sm">
+                        Volver al Directorio
+                    </button>
+                </div>
+            `;
+        }
+
+        /**************************************************************
+         * THEME LOGIC
+         **************************************************************/
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        }
+
+        /**************************************************************
+         * COMPONENT GENERATORS
+         **************************************************************/
+        function generateForm() {
+            return `
+                <form onsubmit="handleFormSubmit(event)" class="space-y-4" novalidate>
+                    <!-- Campo CRÍTICO de enrutamiento para PPL (Dirige a "Raw Leads" en Google Sheets) -->
+                    <input type="hidden" name="x-sheetmonkey-insert-worksheet" value="Raw Leads">
+                    
+                    <input type="hidden" name="Fecha" value="x-sheetmonkey-current-date-time"> 
+                    <input type="hidden" name="Origen" value="Directorio Web">
+                    <!-- Aquí se inyecta el CORREO para que la facturación PPL de SheetMonkey funcione -->
+                    <input type="hidden" name="Unique_ID" value="${APP_CONFIG.profile.uniqueId}">
+                    <!-- Guardamos el número del cliente de respaldo en "Agente" si es necesario -->
+                    <input type="hidden" name="Agente" value="${APP_CONFIG.profile.whatsappNumber}">
+
+                    <div>
+                        <label class="block text-sm font-bold text-main mb-1.5">${APP_CONFIG.ui.nameLabel}</label>
+                        <input type="text" name="Nombre" required 
+                            class="w-full px-4 py-3 rounded-xl bg-card border border-card-border text-main focus:ring-2 focus:ring-accent outline-none transition-all placeholder-muted shadow-sm"
+                            placeholder="${APP_CONFIG.ui.namePlaceholder}">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-main mb-1.5">${APP_CONFIG.ui.messageLabel}</label>
+                        <textarea name="Mensaje" rows="3" required
+                            class="w-full px-4 py-3 rounded-xl bg-card border border-card-border text-main focus:ring-2 focus:ring-accent outline-none transition-all placeholder-muted resize-none shadow-sm"
+                            placeholder="${APP_CONFIG.ui.messagePlaceholder}"></textarea>
+                    </div>
+
+                    <button type="submit" 
+                        class="submit-btn w-full mt-2 py-3.5 px-6 rounded-xl text-white font-bold text-base shadow-md transform active:scale-95 transition-all duration-200 flex justify-center items-center bg-wa-bg hover:bg-wa-hover disabled:opacity-75 disabled:cursor-not-allowed">
+                        <span class="btn-text">${APP_CONFIG.ui.sendButton}</span>
+                        <i class="fab fa-whatsapp ml-2 text-xl btn-icon"></i>
+                    </button>
+                </form>
+            `;
+        }
+
+        let slideInterval;
+        let currentSlide = 0;
+
+        function generateAutoSlider(aspectRatio = "aspect-square", roundedClass = "rounded-2xl") {
+            if (!APP_CONFIG.profile.sliderImages || APP_CONFIG.profile.sliderImages.length === 0) return '';
+            const images = APP_CONFIG.profile.sliderImages.slice(0, 4);
+
+            let slides = images.map(img => `
+                <img src="${img}" class="min-w-full h-full object-cover flex-shrink-0" alt="Slide">
+            `).join('');
+            
+            let dots = images.map((_, i) => `
+                <div id="dot-${i}" class="slider-dot w-2 h-2 rounded-full ${i === 0 ? 'bg-white scale-125' : 'bg-white/50'}"></div>
+            `).join('');
+
+            return `
+                <div class="relative w-full ${aspectRatio} ${roundedClass} overflow-hidden group shadow-md border border-card-border">
+                    <div id="slider-track" class="flex w-full h-full transition-transform duration-500 ease-in-out">
+                        ${slides}
+                    </div>
+                    <button onclick="moveSlide(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                        <i class="fas fa-chevron-left text-xs pr-0.5"></i>
+                    </button>
+                    <button onclick="moveSlide(1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                        <i class="fas fa-chevron-right text-xs pl-0.5"></i>
+                    </button>
+                    <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-10"></div>
+                    <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-2 pointer-events-none z-20">
+                        ${dots}
+                    </div>
+                </div>
+            `;
+        }
+
+        function moveSlide(direction) {
+            const numSlides = Math.min(APP_CONFIG.profile.sliderImages.length, 4);
+            currentSlide = (currentSlide + direction + numSlides) % numSlides;
+            
+            const track = document.getElementById('slider-track');
+            if (track) track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+            document.querySelectorAll('.slider-dot').forEach((dot, index) => {
+                if (index === currentSlide) {
+                    dot.classList.replace('bg-white/50', 'bg-white');
+                    dot.classList.add('scale-125');
+                } else {
+                    dot.classList.replace('bg-white', 'bg-white/50');
+                    dot.classList.remove('scale-125');
+                }
+            });
+            resetInterval();
+        }
+
+        function resetInterval() {
+            clearInterval(slideInterval);
+            if (APP_CONFIG.profile.sliderImages.length > 1) {
+                slideInterval = setInterval(() => moveSlide(1), 3500);
+            }
+        }
+
+        function generateShareFooter() {
+            return `
+                <div class="mt-8 flex justify-center">
+                    <button onclick="shareProfile()" class="bg-btn-bg text-main font-bold py-3 px-6 rounded-2xl shadow-sm border border-btn-border hover:bg-card-border transition-all active:scale-95 flex items-center gap-2 text-sm">
+                        <i class="fas fa-share-nodes text-accent"></i> ${APP_CONFIG.ui.shareText}
+                    </button>
+                </div>
+                <footer class="mt-8 pb-10 text-center text-xs text-muted font-medium border-t border-card-border pt-6 mt-10">
+                    <p>&copy; ${new Date().getFullYear()} ${APP_CONFIG.profile.name}. ${APP_CONFIG.ui.copyrightPrefix}</p>
+                </footer>
+            `;
+        }
+
+        /**************************************************************
+         * LOGIC: SHEET MONKEY HEADLESS & WHATSAPP
+         **************************************************************/
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+
+            // --- DEFENSA PPL: VERIFICACIÓN DE SALDO ---
+            if (APP_CONFIG.profile.currentBalance !== undefined && APP_CONFIG.profile.currentBalance <= 0) {
+                alert("Este negocio no está disponible para recibir mensajes en este momento.");
+                return;
+            }
+
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            const formData = new FormData(form);
+            const name = formData.get('Nombre');
+            const message = formData.get('Mensaje');
+
+            // --- DEFENSA ANTI-SPAM FRONTEND ---
+            const msgLower = message.toLowerCase();
+            const bannedWords = [
+              "seo", "marketing", "crypto", "bitcoin", "invest","buy followers", "click here", "viagra", "casino", "web design", "guaranteed traffic","gana dinero", "ganar dinero", "trabaja desde casa", "trabajo remoto inmediato", "ingresos pasivos","ingresos extras", "hazte rico", "convertirse en millonario", "sueldo diario", "comisiones altas", "gana $", "earn $", "bitcoin", "criptomonedas", "forex", "trading","slots", "apuestas", "bet", "inversion garantizada", "prestamo inmediato", "credito facil", "aumenta tus ventas", "trafico web", "trafico gratis", "posicionamiento seo", "primera pagina de google","base de datos", "emails masivos", "linkbuilding", "backlinks", "mejora tu web", "vi-agra", "cia-lis", "citas gratis", "adultos", "sexo", "sex","dieta milagrosa", "baja de peso rapido", "haz clic aqui", "buy now", "wight loss", "http", "www"
+            ];
+            
+            if (bannedWords.some(word => msgLower.includes(word))) {
+                alert("Tu mensaje contiene lenguaje promocional y no puede ser enviado.");
+                return;
+            }
+
+            const now = new Date().getTime();
+            let history = JSON.parse(localStorage.getItem('lead_history') || '[]');
+            history = history.filter(timestamp => now - timestamp < 3600000); 
+            
+            if (history.length >= 3) {
+                alert("Has enviado demasiados mensajes recientemente. Por favor, intenta en una hora.");
+                return;
+            }
+            
+            history.push(now);
+            localStorage.setItem('lead_history', JSON.stringify(history));
+            // --- FIN ANTI-SPAM ---
+
+            const btn = form.querySelector('.submit-btn');
+            const btnText = form.querySelector('.btn-text');
+            const btnIcon = form.querySelector('.btn-icon');
+
+            btn.disabled = true;
+            btnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + APP_CONFIG.ui.connectingBtn;
+            btnIcon.classList.add('hidden');
+
+            // 2. Headless Submission a SheetMonkey (Pipeline B)
+            if(APP_CONFIG.integrations.sheetMonkeyEndpoint && !APP_CONFIG.integrations.sheetMonkeyEndpoint.includes("YOUR_PIPELINE")) {
+                try {
+                    await fetch(APP_CONFIG.integrations.sheetMonkeyEndpoint, {
+                        method: 'POST',
+                        body: formData, // <-- FIX: Envía formData directamente, esto soluciona el fallo en mode: 'no-cors'
+                        mode: 'no-cors' // Crucial para iframes/redirecciones limpias
+                    });
+                } catch (error) {
+                    console.error("Error en Webhook", error);
+                }
+            }
+
+            // 3. Force UX Delay (1 sec)
+            await new Promise(res => setTimeout(res, 1000));
+
+            // 4. Redirección a WhatsApp del Negocio
+            const waText = `Hola ${APP_CONFIG.profile.name}, mi nombre es *${name}* y te contacto desde el Directorio Exclusivo.\n\n${message}`;
+            const waUrl = `https://wa.me/${APP_CONFIG.profile.whatsappNumber}?text=${encodeURIComponent(waText)}`;
+
+            window.open(waUrl, '_blank');
+
+            // 5. Reset State
+            setTimeout(() => {
+                form.reset();
+                btn.disabled = false;
+                btnText.textContent = APP_CONFIG.ui.sendButton;
+                btnIcon.classList.remove('hidden');
+            }, 1000);
+        }
+
+        /**************************************************************
+         * LOGIC: WEB SHARE API
+         **************************************************************/
+        async function shareProfile() {
+            const shareData = {
+                title: APP_CONFIG.profile.name,
+                text: APP_CONFIG.profile.title,
+                url: window.location.href,
+            };
+            try {
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                } else {
+                    const dummy = document.createElement('input');
+                    document.body.appendChild(dummy);
+                    dummy.value = window.location.href;
+                    dummy.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(dummy);
+                    alert(APP_CONFIG.alerts.copySuccess);
+                }
+            } catch (err) {
+                console.error('Error sharing', err);
+            }
+        }
+
+        /**************************************************************
+         * RENDER LAYOUT MAIN UI
+         **************************************************************/
+        function renderApp() {
+            document.title = `Publimapa | ${APP_CONFIG.profile.name}`;
+            
+            const container = document.getElementById('app-wrapper');
+            container.classList.remove("justify-center", "items-center"); // Remover centrado de loader
+            
+            // Lógica para renderizar o esconder el botón de Mapa
+            let mapButtonHTML = "";
+            if (APP_CONFIG.profile.locationMapUrl && APP_CONFIG.profile.locationMapUrl.trim() !== "") {
+                mapButtonHTML = `
+                    <a href="${APP_CONFIG.profile.locationMapUrl}" target="_blank" class="inline-flex items-center justify-center px-6 py-2.5 bg-btn-bg border border-btn-border rounded-xl shadow-sm text-sm font-bold text-main hover:bg-card-border transition-colors mt-3 mb-5">
+                        <i class="fas fa-location-dot text-accent mr-2"></i> ${APP_CONFIG.ui.locationButtonText}
+                    </a>
+                `;
+            }
+
+            container.innerHTML = `
+                <!-- Sticky Top Menu Bar (Screen Wide) -->
+                <nav class="fixed top-0 left-0 w-full z-50 bg-page/90 backdrop-blur-md border-b border-card-border shadow-sm">
+                    <div class="w-full px-4 sm:px-6 md:px-8 py-3 flex justify-between items-center">
+                        <img src="${APP_CONFIG.profile.directoryLogo}" alt="Directorio Logo" class="h-8 w-auto object-contain cursor-pointer" onclick="window.history.back()">
+                        <button onclick="toggleTheme()" class="flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-none">
+                            <div class="w-[42px] h-[22px] bg-card border border-card-border rounded-full relative flex items-center px-1 transition-colors">
+                                <!-- Modificado para que a lúa sexa dun gris máis visible en modo claro -->
+                                <div class="w-[16px] h-[16px] bg-muted/40 dark:bg-muted rounded-full flex items-center justify-center transition-transform duration-300 dark:translate-x-[18px] shadow-sm">
+                                    <i class="fas fa-moon text-[10px] text-gray-500 dark:text-white transition-colors"></i>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </nav>
+
+                <div class="px-4 pt-24 pb-6 max-w-md mx-auto">
+                    <header class="flex flex-col items-center text-center mb-6 mt-2">
+                        <div class="relative group mb-5">
+                            <div class="absolute -inset-0.5 bg-accent/40 rounded-full blur-md"></div>
+                            <img src="${APP_CONFIG.profile.image}" class="relative w-36 h-36 rounded-full object-cover border-4 border-card shadow-xl">
+                        </div>
+                        <h1 class="text-3xl font-bold font-serif tracking-tight mb-2 text-main">${APP_CONFIG.profile.name}</h1>
+                        <p class="text-accent text-lg font-semibold mb-3">${APP_CONFIG.profile.title}</p>
+                        
+                        <!-- Dynamic Labels -->
+                        <div class="flex flex-wrap gap-2 justify-center my-3">
+                            <span class="bg-card text-accent text-xs font-bold px-3 py-1.5 rounded-full border border-card-border shadow-sm">
+                                <i class="fas fa-tag mr-1"></i> ${APP_CONFIG.profile.category}
+                            </span>
+                            <span class="bg-card text-muted text-xs font-bold px-3 py-1.5 rounded-full border border-card-border shadow-sm">
+                                <i class="fas fa-map-marker-alt mr-1"></i> ${APP_CONFIG.profile.zone}
+                            </span>
+                        </div>
+
+                        ${mapButtonHTML}
+
+                        <p class="text-muted text-[16px] font-medium leading-relaxed px-2">${APP_CONFIG.profile.description}</p>
+                    </header>
+                    
+                    <div class="mb-8">${generateAutoSlider("aspect-square", "rounded-2xl")}</div>
+
+                    <main class="bg-card rounded-2xl shadow-sm border border-card-border overflow-hidden mb-2">
+                        <div class="p-6 md:p-8">
+                            <div class="text-center mb-6 border-b border-card-border pb-5">
+                                <h2 class="text-2xl font-bold font-serif text-main">${APP_CONFIG.ui.formTitle}</h2>
+                                <p class="text-sm text-muted mt-2 font-medium">${APP_CONFIG.ui.formSubtitle}</p>
+                            </div>
+                            ${generateForm()}
+                        </div>
+                    </main>
+
+                    ${generateShareFooter()}
+                </div>
+            `;
+            
+            resetInterval();
+        }
+
+        // Initialize when DOM is ready (Llama al Data Fetcher en lugar del Render directo)
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
