@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computación y Electrónica | Alcaldía Benito Juárez</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- ======================================================= -->
+    <!-- MASTER APP-LESS CONFIGURATION BLOCK                     -->
+    <!-- (Todo el contenido, diseño y funcionalidad se controla aquí) -->
+    <!-- ======================================================= -->
+    <script>
+        const CONFIG = {
+            // ---- CATEGORY SPECIFIC CONFIG ----
+            targetCategory: "computacion", 
+            pageTitle: "Computación y Electrónica",
+            pageSubtitle: "Reparación de celuares/laptops, venta de accesorios, tiendas de computo, distribuidores autorizados...",
+            pageIcon: "pc-case", // Icono principal de la categoría
+            
+            api: {
+                // Endpoint para obtener los negocios (Google Apps Script Web App)
+                businessesDataUrl: "https://script.google.com/macros/s/AKfycbzLSNOkt25cVfp-xXCeYgPAU1ZjW5oxAYwHChZii5JT2OBCgz8pHOgN4CQmmd7Ux4M3/exec", 
+                // Pipeline B: SheetMonkey Webhook para captura de Leads (PPL)
+                sheetMonkeyUrl: "https://api.sheetmonkey.io/form/6wEBAkwEJED5xpn4FUFX3Y",
+                
+                // CONTROL DE DATOS: 
+                // true = Oculta la MockData y muestra pantalla de "Vacio" si no hay datos en la DB.
+                // false = Muestra datos de relleno si la DB falla (solo para pruebas).
+                forceDatabaseOnly: false 
+            },
+            
+            // --- ESTÉTICA, COLORES Y TIPOGRAFÍA ---
+            theme: {
+                // Tipografía desde Google Fonts
+                fontUrl: "https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+                fontHeading: '"Carlito"', 
+                fontBody: '"Carlito"',
+
+                // Scandinavian slate (Modo Claro)
+                colors: {  
+                    bgColor: "#F4F5F4",      // Gris ceniza con un levísimo toque verde  
+                    textColor: "#1F2937",    // Gris carbón (Gray 800)  
+                    accentColor: "#5B7065",  // Verde Salvia / Pizarra  
+                    accentHover: "#475950",  // Verde Salvia oscuro  
+                    cardBg: "#FFFFFF",       // Blanco puro  
+                    cardBorder: "#E5E7EB",   // Gris neutro  
+                    textMuted: "#6B7280",    // Gris estándar  
+                    btnBg: "#FFFFFF",        // Blanco  
+                    btnBorder: "#D1D5DB"     // Borde gris claro  
+                },
+
+                // Modern Dark (Modo Oscuro)
+                darkColors: {
+                    bgColor: "#121212",      // Ónice / Gris casi negro  
+                    textColor: "#F3F4F6",    // Gris muy claro para legibilidad (Gray 100)  
+                    accentColor: "#10B981",  // Verde Esmeralda vibrante (Emerald 500)  
+                    accentHover: "#059669",  // Verde Esmeralda profundo (Emerald 600)  
+                    cardBg: "#1E1E1E",       // Fondo de tarjeta elevado (Material Dark)  
+                    cardBorder: "#333333",   // Borde oscuro sutil  
+                    textMuted: "#9CA3AF",    // Gris medio para texto secundario  
+                    btnBg: "#2A2A2A",        // Botón secundario oscuro  
+                    btnBorder: "#404040"     // Borde de botón oscuro  
+                },
+                
+                // Colores para botones especiales
+                specialColors: {
+                    whatsappBg: "#25D366",
+                    whatsappHover: "#128C7E"
+                }
+            },
+            
+            // --- PROTECCIÓN ANTI-SPAM ---
+            antiSpam: {
+                bannedKeywords: ["seo", "marketing", "crypto", "bitcoin", "invest","buy followers", "click here", "viagra", "casino", "web design", "guaranteed traffic","gana dinero", "ganar dinero", "trabaja desde casa", "trabajo remoto inmediato", "ingresos pasivos","ingresos extras", "hazte rico", "convertirse en millonario", "sueldo diario", "comisiones altas", "gana $", "earn $", "bitcoin", "criptomonedas", "forex", "trading","slots", "apuestas", "bet", "inversion garantizada", "prestamo inmediato", "credito facil", "aumenta tus ventas", "trafico web", "trafico gratis", "posicionamiento seo", "primera pagina de google","base de datos", "emails masivos", "linkbuilding", "backlinks", "mejora tu web", "vi-agra", "cia-lis", "citas gratis", "adultos", "sexo", "sex","dieta milagrosa", "baja de peso rapido", "haz clic aqui", "buy now", "wight loss", "http", "www"],
+                maxLeadsPerHour: 5
+            }
+        };
+
+        // --- INYECCIÓN DINÁMICA DE FUENTES Y VARIABLES CSS ---
+        const fontLink = document.createElement('link');
+        fontLink.href = CONFIG.theme.fontUrl;
+        fontLink.rel = "stylesheet";
+        document.head.appendChild(fontLink);
+
+        const styleVars = document.createElement('style');
+        styleVars.innerHTML = `
+            :root {
+                --c-bg: ${CONFIG.theme.colors.bgColor};
+                --c-text: ${CONFIG.theme.colors.textColor};
+                --c-accent: ${CONFIG.theme.colors.accentColor};
+                --c-accent-hover: ${CONFIG.theme.colors.accentHover};
+                --c-card-bg: ${CONFIG.theme.colors.cardBg};
+                --c-card-border: ${CONFIG.theme.colors.cardBorder};
+                --c-text-muted: ${CONFIG.theme.colors.textMuted};
+                --c-btn-bg: ${CONFIG.theme.colors.btnBg};
+                --c-btn-border: ${CONFIG.theme.colors.btnBorder};
+                --c-wa: ${CONFIG.theme.specialColors.whatsappBg};
+                --c-wa-hover: ${CONFIG.theme.specialColors.whatsappHover};
+            }
+            html.dark {
+                --c-bg: ${CONFIG.theme.darkColors.bgColor};
+                --c-text: ${CONFIG.theme.darkColors.textColor};
+                --c-accent: ${CONFIG.theme.darkColors.accentColor};
+                --c-accent-hover: ${CONFIG.theme.darkColors.accentHover};
+                --c-card-bg: ${CONFIG.theme.darkColors.cardBg};
+                --c-card-border: ${CONFIG.theme.darkColors.cardBorder};
+                --c-text-muted: ${CONFIG.theme.darkColors.textMuted};
+                --c-btn-bg: ${CONFIG.theme.darkColors.btnBg};
+                --c-btn-border: ${CONFIG.theme.darkColors.btnBorder};
+            }
+        `;
+        document.head.appendChild(styleVars);
+
+        // --- CONFIGURACIÓN TAILWIND ---
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        appBg: 'var(--c-bg)',
+                        appText: 'var(--c-text)',
+                        appAccent: 'var(--c-accent)',
+                        appAccentHover: 'var(--c-accent-hover)',
+                        appCardBg: 'var(--c-card-bg)',
+                        appCardBorder: 'var(--c-card-border)',
+                        appTextMuted: 'var(--c-text-muted)',
+                        appBtnBg: 'var(--c-btn-bg)',
+                        appBtnBorder: 'var(--c-btn-border)',
+                        appWa: 'var(--c-wa)',
+                        appWaHover: 'var(--c-wa-hover)'
+                    },
+                    fontFamily: {
+                        heading: [CONFIG.theme.fontHeading, 'serif'],
+                        body: [CONFIG.theme.fontBody, 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* Estilos base utilizando nuestras variables inyectadas */
+        body {
+            font-family: theme('fontFamily.body');
+        }
+        
+        /* Evita que los inputs tengan fondo blanco puro en dark mode */
+        html.dark input, html.dark textarea { 
+            background-color: var(--c-bg); 
+            color: var(--c-text); 
+            border-color: var(--c-card-border); 
+        }
+        
+        h1, h2, h3, h4, .font-heading { font-family: theme('fontFamily.heading'); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-appBg text-appText min-h-screen flex flex-col antialiased transition-colors duration-300">
+
+    <!-- TOP HEADER / THEME TOGGLE -->
+    <div class="max-w-6xl mx-auto px-6 pt-6 flex justify-end w-full">
+        <div class="flex items-center justify-center w-12 h-6 bg-appCardBorder rounded-full relative cursor-pointer border border-appTextMuted/20" onclick="toggleDarkMode()">
+            <div id="themeToggleBall" class="absolute left-1 top-1 bg-appBtnBg w-4 h-4 rounded-full transition-transform duration-200 ease-in-out flex items-center justify-center shadow-sm">
+                <i data-lucide="moon" class="w-3 h-3 text-appTextMuted" id="themeIcon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN HEADER & SEARCH -->
+    <header class="py-6 sm:py-8">
+        <div class="max-w-4xl mx-auto px-4 flex flex-col items-center text-center">
+            
+            <!-- HEADER FIX: Se apilan verticalmente en móviles (flex-col) y horizontalmente en PC (sm:flex-row) -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-appAccent mb-3 sm:mb-4 max-w-full">
+                <i id="headerIcon" class="w-12 h-12 flex-shrink-0"></i>
+                <h1 class="text-3xl sm:text-4xl font-bold font-heading text-appText text-center leading-tight" id="appTitle"></h1>
+            </div>
+            
+            <p class="text-appTextMuted text-base sm:text-lg mb-8" id="appSubtitle"></p>
+
+            <!-- Search Bar -->
+            <div class="relative w-full max-w-2xl shadow-sm">
+                <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-appTextMuted"></i>
+                <input type="text" id="searchInput" class="w-full pl-12 pr-4 py-3 border border-appCardBorder rounded-xl focus:outline-none focus:ring-2 focus:ring-appAccent bg-appCardBg text-appText transition-shadow" placeholder="Buscar negocios, servicios...">
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GRID CONTENT -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
+        <div id="businessesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            <!-- Las tarjetas se generan dinámicamente aquí -->
+        </div>
+        
+        <!-- Estado Vacío -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+            <i data-lucide="search-x" class="w-16 h-16 text-appTextMuted mb-4"></i>
+            <h3 class="text-2xl font-heading text-appText font-bold mb-2">No se encontraron negocios</h3>
+            <p class="text-appTextMuted">No hay resultados que coincidan con tu búsqueda en esta categoría.</p>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-appCardBorder bg-transparent py-8 mt-auto transition-colors">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4 text-appTextMuted">
+                <a href="#" class="hover:text-appAccent transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a>
+                <a href="#" class="hover:text-appAccent transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a>
+            </div>
+            <p class="text-appTextMuted text-sm text-center sm:text-left">
+                &copy; <span id="currentYear"></span> <span id="footerCategoryName"></span>. Todos los derechos reservados PUBLIMAPA®.
+            </p>
+        </div>
+    </footer>
+
+    <!-- MODAL DE CONTACTO DIRECTO (PPL) -->
+    <div id="detailsModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center transition-opacity opacity-0">
+        <div class="bg-appCardBg w-full sm:w-[550px] sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl transform transition-transform translate-y-full sm:translate-y-0 border border-appCardBorder" id="modalContent">
+            
+            <div class="relative h-48 sm:h-56 bg-appBg">
+                <img id="mHeroImage" src="" alt="Hero" class="w-full h-full object-cover">
+                <button onclick="closeModal()" class="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-colors backdrop-blur-md">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 sm:p-8">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span id="mCategory" class="text-xs font-bold uppercase tracking-widest text-appTextMuted"></span>
+                        <h2 id="mTitle" class="text-2xl sm:text-3xl font-heading font-bold mt-1 text-appText"></h2>
+                    </div>
+                </div>
+                
+                <p id="mDesc" class="text-appTextMuted text-sm sm:text-base leading-relaxed mt-4"></p>
+
+                <!-- MAPA LEAFLET -->
+                <div id="mMapContainer" class="w-full h-40 bg-appBg rounded-xl mt-6 hidden overflow-hidden z-10 relative border border-appCardBorder shadow-inner">
+                    <div id="map" class="w-full h-full"></div>
+                </div>
+
+                <hr class="my-6 sm:my-8 border-appCardBorder">
+
+                <!-- FORMULARIO PPL Y ANTI-SPAM (SheetMonkey) -->
+                <div id="contactFormSection">
+                    <h3 class="font-heading font-bold text-lg sm:text-xl mb-4 flex items-center gap-2 text-appText">
+                        <i data-lucide="message-square-text" class="w-5 h-5 text-appAccent"></i>
+                        Contactar Negocio
+                    </h3>
+                    
+                    <form id="leadForm" class="space-y-4" onsubmit="handleFormSubmit(event)">
+                        <!-- CAMPO AÑADIDO: Fecha requerida para SheetMonkey -->
+                        <input type="hidden" name="x-sheetmonkey-insert-worksheet" value="Raw Leads">
+                        <input type="hidden" name="Fecha" value="x-sheetmonkey-current-date-time">
+                        <input type="hidden" name="Unique_ID" id="fUniqueId">
+                        <input type="hidden" name="Origen" value="Directorio Categoria Específica">
+                        <input type="hidden" name="Agente" id="fBusinessNumber">
+
+                        <div>
+                            <input type="text" id="leadName" name="Nombre" required class="w-full px-4 py-3 bg-appBg border border-appCardBorder text-appText rounded-lg focus:outline-none focus:ring-2 focus:ring-appAccent text-sm transition-shadow" placeholder="Tu Nombre">
+                        </div>
+                        <div>
+                            <textarea id="leadMessage" name="Mensaje" required rows="3" class="w-full px-4 py-3 bg-appBg border border-appCardBorder text-appText rounded-lg focus:outline-none focus:ring-2 focus:ring-appAccent text-sm resize-none transition-shadow" placeholder="¿Cómo te puede ayudar este negocio?"></textarea>
+                        </div>
+                        
+                        <div id="spamAlert" class="hidden bg-red-900/10 border border-red-500/50 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm flex items-start gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                            <span id="spamAlertText"></span>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="w-full bg-appWa hover:bg-appWaHover text-white font-bold py-3.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                            <span id="submitBtnText">Contactar por WhatsApp</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- LOGICA DE LA APLICACIÓN -->
+    <script>
+        // --- 1. DATOS Y ESTADO ---
+        let businesses = [];
+        let mapInstance = null;
+        let currentModalBusiness = null;
+
+        // Mock data base para casos de emergencia / fallback desactivado por defecto
+        const MOCK_DATA = [
+            {
+                Unique_ID: "wisetelcom-id",
+                Slug: "wisetelcom",
+                ProfileName: "Wisetelcom",
+                Category: "Tecnología y Electrónica",
+                Zone: "Centro",
+                ProfileTitle: "Reparación y Mantenimiento",
+                Description: "Reparamos tu celular. Manejamos distintas marcas, desde las más lujosas en el mercado hasta las más accesibles (en cuanto a precio). Nuestros servicios incluyen software, hardware, pantallas y baterías.",
+                Image: "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=800&q=80",
+                WhatsAppNumber: "5215551234567",
+                MapLat: 16.7538,
+                MapLng: -93.1158,
+                MapUrl: "https://goo.gl/maps/example"
+            },
+            {
+                Unique_ID: "techhub-especialistas-id",
+                Slug: "techhub-especialistas",
+                ProfileName: "TechHub Especialistas",
+                Category: "Tecnología y Electrónica",
+                Zone: "Norte",
+                ProfileTitle: "Reparación y Venta de Gadgets",
+                Description: "Especialistas en microelectrónica. Reparamos desde smartphones hasta tarjetas madre de laptops. También contamos con accesorios exclusivos e importación bajo pedido.",
+                Image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=800&q=80",
+                WhatsAppNumber: "5215557654321",
+                MapLat: 16.7500,
+                MapLng: -93.1100
+            }
+        ];
+
+        // --- 2. INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('appTitle').textContent = CONFIG.pageTitle;
+            document.getElementById('appSubtitle').textContent = CONFIG.pageSubtitle;
+            document.getElementById('footerCategoryName').textContent = CONFIG.pageTitle;
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+            
+            const headerIcon = document.getElementById('headerIcon');
+            headerIcon.setAttribute('data-lucide', CONFIG.pageIcon);
+
+            document.getElementById('searchInput').addEventListener('input', filterBusinesses);
+
+            lucide.createIcons();
+            fetchDataAndInit();
+        });
+
+        // --- 3. DARK MODE TOGGLE ---
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const ball = document.getElementById('themeToggleBall');
+            const icon = document.getElementById('themeIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                ball.style.transform = 'translateX(0)';
+                icon.setAttribute('data-lucide', 'moon');
+            } else {
+                html.classList.add('dark');
+                ball.style.transform = 'translateX(24px)';
+                icon.setAttribute('data-lucide', 'sun');
+            }
+            lucide.createIcons();
+        }
+
+        // --- 4. OBTENCIÓN Y RENDERIZADO DE DATOS ---
+        async function fetchDataAndInit() {
+            try {
+                let rawData = [];
+                if (CONFIG.api.businessesDataUrl && CONFIG.api.businessesDataUrl.trim() !== "") {
+                    const response = await fetch(CONFIG.api.businessesDataUrl);
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                    rawData = await response.json();
+                } else {
+                    if (CONFIG.api.forceDatabaseOnly) throw new Error("URL vacía y Force DB está activo.");
+                    rawData = MOCK_DATA; 
+                }
+                
+                // FILTRO CORE: Mantener solo los negocios de esta categoría específica
+                businesses = rawData.filter(biz => 
+                    biz.Category && biz.Category.toLowerCase() === CONFIG.targetCategory.toLowerCase()
+                );
+
+                // Si no encontramos negocios (y no forzamos base de datos) mostramos mock. 
+                // Si forzamos base de datos, dejamos array vacío.
+                if(businesses.length === 0 && !CONFIG.api.forceDatabaseOnly) {
+                    businesses = MOCK_DATA;
+                }
+
+                // Las tarjetas se ordenan al azar en cada recarga
+                businesses = shuffleArray([...businesses]);
+                renderCards(businesses);
+
+            } catch (error) {
+                console.error("Error al cargar datos:", error);
+                if (CONFIG.api.forceDatabaseOnly) {
+                    businesses = []; 
+                } else {
+                    businesses = MOCK_DATA;
+                }
+                // Si falla, también ordena al azar los datos por defecto
+                businesses = shuffleArray([...businesses]);
+                renderCards(businesses);
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function renderCards(dataToRender) {
+            const grid = document.getElementById('businessesGrid');
+            const emptyState = document.getElementById('emptyState');
+            grid.innerHTML = '';
+
+            if (dataToRender.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            const favorites = getFavorites();
+
+            dataToRender.forEach(biz => {
+                const isFav = favorites.includes(biz.Unique_ID);
+                const favIconClass = isFav ? 'fill-appAccent text-appAccent' : 'text-appTextMuted';
+                const favBgClass = isFav ? 'bg-appAccent/10' : 'bg-transparent hover:bg-black/5';
+                
+                // Preparamos el ID para el archivo business.html
+                const profileIdentifier = biz.Slug || biz.Unique_ID;
+                
+                // Fallback para URL de Google Maps usando lat/lng si no se proporciona MapUrl
+                const mapLinkUrl = biz.MapUrl || `https://www.google.com/maps/search/?api=1&query=${biz.MapLat || 0},${biz.MapLng || 0}`;
+
+                const cardHTML = `
+                    <div class="flex flex-row bg-appCardBg border border-appCardBorder rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow h-auto sm:h-56 relative group">
+                        
+                        <!-- Botón Favorito (Movido a la esquina superior derecha de la tarjeta) -->
+                        <button onclick="toggleFav(event, '${biz.Unique_ID}')" class="absolute top-2 right-2 sm:top-4 sm:right-4 ${favBgClass} rounded-full p-2 transition-all duration-200 z-20">
+                            <i data-lucide="bookmark" class="w-4 h-4 sm:w-5 sm:h-5 ${favIconClass} transition-colors"></i>
+                        </button>
+
+                        <!-- Imagen Izquierda (Compact on Mobile, Original on Desktop) -->
+                        <div class="w-28 sm:w-[40%] h-auto min-h-[120px] sm:min-h-0 sm:h-full relative bg-appBg flex-shrink-0">
+                            <img src="${biz.Image}" alt="${biz.ProfileName}" class="absolute inset-0 w-full h-full object-cover">
+                        </div>
+                        
+                        <!-- Contenido Derecha -->
+                        <div class="w-full p-3 sm:p-6 flex flex-col justify-between">
+                            <div class="pr-8 sm:pr-10"> <!-- Añadido padding derecho para evitar que el texto choque con el botón -->
+                                <p class="text-[9px] sm:text-[10px] font-bold text-appTextMuted uppercase tracking-widest mb-0.5 sm:mb-1.5">${biz.Category}</p>
+                                <h3 class="font-heading font-bold text-base sm:text-2xl text-appText leading-tight mb-1 sm:mb-2">${biz.ProfileName}</h3>
+                                <p class="text-xs sm:text-sm text-appTextMuted line-clamp-2 sm:line-clamp-3 leading-tight sm:leading-relaxed">${biz.Description}</p>
+                            </div>
+                            
+                            <!-- Botones Inferiores actualizados -->
+                            <div class="mt-3 sm:mt-5 flex items-center gap-2 sm:gap-3">
+                                <!-- Botón Como Llegar -->
+                                <a href="${mapLinkUrl}" target="_blank" class="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 bg-appBtnBg border border-appBtnBorder rounded sm:rounded-lg text-xs sm:text-sm font-semibold text-appText flex items-center justify-center gap-1 sm:gap-2 hover:opacity-80 transition-opacity">
+                                    <i data-lucide="map-pin" class="w-3 h-3 sm:w-4 sm:h-4 text-appTextMuted"></i> 
+                                    <span class="sm:hidden">Mapa</span>
+                                    <span class="hidden sm:inline">Cómo Llegar</span>
+                                </a>
+                                
+                                <!-- Botón Ver Detalles estilizado con accent -->
+                                <button onclick="window.open('business.html?id=${profileIdentifier}', '_blank')" class="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 bg-appAccent rounded sm:rounded-lg text-xs sm:text-sm font-semibold text-white flex items-center justify-center gap-1 sm:gap-2 hover:bg-appAccentHover shadow-sm transition-colors border border-transparent">
+                                    <i data-lucide="eye" class="w-3 h-3 sm:w-4 sm:h-4"></i> 
+                                    <span class="sm:hidden">Ver</span>
+                                    <span class="hidden sm:inline">Ver Detalles</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHTML);
+            });
+            lucide.createIcons();
+        }
+
+        function filterBusinesses() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = businesses.filter(biz => {
+                return biz.ProfileName.toLowerCase().includes(query) || 
+                       biz.Description.toLowerCase().includes(query);
+            });
+            renderCards(filtered);
+        }
+
+        // --- 5. FAVORITOS (LOCALSTORAGE) ---
+        function getFavorites() {
+            return JSON.parse(localStorage.getItem('bdir_favorites') || '[]');
+        }
+
+        function toggleFav(e, id) {
+            e.stopPropagation();
+            let favs = getFavorites();
+            if (favs.includes(id)) {
+                favs = favs.filter(favId => favId !== id);
+            } else {
+                favs.push(id);
+            }
+            localStorage.setItem('bdir_favorites', JSON.stringify(favs));
+            filterBusinesses(); 
+        }
+
+        // --- 6. LÓGICA DEL MODAL Y MAPA (Modal Code Remains here optionally if used elsewhere) ---
+        function openModal(id, scrollToContact = false) {
+            currentModalBusiness = businesses.find(b => b.Unique_ID === id);
+            if (!currentModalBusiness) return;
+
+            document.getElementById('mHeroImage').src = currentModalBusiness.Image;
+            document.getElementById('mCategory').textContent = currentModalBusiness.Category;
+            document.getElementById('mTitle').textContent = currentModalBusiness.ProfileName;
+            document.getElementById('mDesc').textContent = currentModalBusiness.Description;
+            
+            document.getElementById('fUniqueId').value = currentModalBusiness.Unique_ID;
+            document.getElementById('fBusinessNumber').value = currentModalBusiness.WhatsAppNumber;
+            document.getElementById('leadMessage').value = ""; 
+
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('hidden');
+            
+            void modal.offsetWidth; // Force reflow
+            
+            modal.classList.add('opacity-100');
+            content.classList.remove('translate-y-full');
+            document.body.style.overflow = 'hidden';
+
+            document.getElementById('spamAlert').classList.add('hidden');
+
+            initMap(currentModalBusiness.MapLat, currentModalBusiness.MapLng);
+
+            if (scrollToContact) {
+                setTimeout(() => {
+                    document.getElementById('contactFormSection').scrollIntoView({ behavior: 'smooth' });
+                    document.getElementById('leadName').focus();
+                }, 300);
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('modalContent');
+            
+            modal.classList.remove('opacity-100');
+            content.classList.add('translate-y-full');
+            document.body.style.overflow = '';
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                if (mapInstance) {
+                    mapInstance.remove();
+                    mapInstance = null;
+                }
+            }, 300);
+        }
+
+        function initMap(lat, lng) {
+            const mapContainer = document.getElementById('mMapContainer');
+            if (lat && lng) {
+                mapContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    if (mapInstance) mapInstance.remove();
+                    mapInstance = L.map('map').setView([lat, lng], 15);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(mapInstance);
+                    L.marker([lat, lng]).addTo(mapInstance);
+                    mapInstance.invalidateSize();
+                }, 100);
+            } else {
+                mapContainer.classList.add('hidden');
+            }
+        }
+
+        // --- 7. ANTI-SPAM FRONTEND & WEBHOOK PPL ---
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+
+            // --- DEFENSA PPL: VERIFICACIÓN DE SALDO ---
+            if (currentModalBusiness.CurrentBalance !== undefined && currentModalBusiness.CurrentBalance <= 0) {
+                alert("Este negocio no está disponible para recibir mensajes en este momento por falta de saldo.");
+                return false;
+            }
+
+            const message = document.getElementById('leadMessage').value.toLowerCase();
+            const alertBox = document.getElementById('spamAlert');
+            const alertText = document.getElementById('spamAlertText');
+            const btnText = document.getElementById('submitBtnText');
+            const submitBtn = document.getElementById('submitBtn');
+
+            alertBox.classList.add('hidden');
+
+            // --- KEYWORD CHECK ---
+            for (let word of CONFIG.antiSpam.bannedKeywords) {
+                if (message.includes(word)) {
+                    alertText.textContent = "Mensaje no permitido por políticas de anti-spam (contiene términos promocionales).";
+                    alertBox.classList.remove('hidden');
+                    return false;
+                }
+            }
+
+            // --- RATE LIMITING ---
+            const now = new Date().getTime();
+            let leadHistory = JSON.parse(localStorage.getItem('bdir_history') || '[]');
+            leadHistory = leadHistory.filter(time => now - time < 3600000); // 1 hora
+
+            if (leadHistory.length >= CONFIG.antiSpam.maxLeadsPerHour) {
+                alertText.textContent = "Has enviado demasiados mensajes recientemente. Intenta en una hora.";
+                alertBox.classList.remove('hidden');
+                return false;
+            }
+
+            // --- SUBMIT ---
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            btnText.innerHTML = "Enviando... <i class='animate-spin' data-lucide='loader-2' style='display:inline-block; width:18px; height:18px; vertical-align:middle;'></i>";
+            lucide.createIcons();
+
+            try {
+                // Post to SheetMonkey (Pipeline B)
+                await fetch(CONFIG.api.sheetMonkeyUrl, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    mode: 'no-cors' 
+                });
+
+                leadHistory.push(now);
+                localStorage.setItem('bdir_history', JSON.stringify(leadHistory));
+
+                // Redirigir a WhatsApp
+                const rawName = document.getElementById('leadName').value;
+                const rawMsg = document.getElementById('leadMessage').value;
+                const waText = encodeURIComponent(`Hola ${currentModalBusiness.ProfileName}. Mi nombre es ${rawName}. Te contacto desde el Directorio de ${CONFIG.pageTitle}.\n\n${rawMsg}`);
+                const waUrl = `https://wa.me/${currentModalBusiness.WhatsAppNumber}?text=${waText}`;
+                
+                form.reset();
+                window.open(waUrl, '_blank');
+                closeModal();
+
+            } catch (error) {
+                console.error("Error SheetMonkey:", error);
+                alertText.textContent = "Error de conexión. Intenta nuevamente.";
+                alertBox.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btnText.textContent = "Contactar por WhatsApp";
+            }
+        }
+
+        // Event listener cerrar modal clickeando afuera
+        document.getElementById('detailsModal').addEventListener('click', function(e) {
+            if(e.target === this) closeModal();
+        });
+    </script>
+</body>
+</html>

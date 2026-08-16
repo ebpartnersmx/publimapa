@@ -1,0 +1,15 @@
+{
+  "name": "publimapa",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "secret:gemini": "wrangler secret put GEMINI_API_KEY",
+    "secret:gas": "wrangler secret put GAS_API_URL",
+    "refresh-cache": "curl -X POST https://publimapa.com/api/update-cache"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

@@ -1,0 +1,27 @@
+name = "publimapa"
+compatibility_date = "2026-08-05"
+compatibility_flags = ["nodejs_compat"]
+
+# Server-side Worker entry point
+main = "./src/index.js"
+
+# Static assets — your frontend lives in ./public
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+
+# KV namespace binding
+[[kv_namespaces]]
+binding = "PUBLIMAPA_KV"
+id = "ea27d97719fc4dc298d7b4025701ba3b"
+
+# Cron trigger: refresh the Gemini context cache every hour
+[triggers]
+crons = ["0 * * * *"]
+
+# Custom domains
+routes = [
+  { pattern = "publimapa.com", custom_domain = true },
+  { pattern = "www.publimapa.com", custom_domain = true }
+]
